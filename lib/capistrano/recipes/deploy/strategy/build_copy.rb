@@ -19,9 +19,6 @@ module Capistrano
               system(source.checkout(revision, copy_cache))
             end
             
-            logger.debug("start  build command")
-            system(build_command)
-
             logger.debug "copying cache to deployment staging area #{destination}"
             Dir.chdir(copy_cache) do
               FileUtils.mkdir_p(destination)
@@ -44,27 +41,30 @@ module Capistrano
           else
             logger.debug "getting (via #{copy_strategy}) revision #{revision} to #{destination}"
             system(command)
-            logger.debug("start  build command")
-            system(build_command)
 
             if copy_exclude.any?
               logger.debug "processing exclusions..."
               copy_exclude.each { |pattern| FileUtils.rm_rf(File.join(destination, pattern)) }
             end
           end
-
+          logger.debug("start  build command")
+          system(build_command)
           Dir.chdir(tmpdir) 
           if File.directory? build_target_path
               FileUtils.mv(build_target_path,destination_tmp)
+              #Capistrano::CLI.ui.ask('break point')
               FileUtils.rm_rf(destination)
               FileUtils.mv(destination_tmp, destination)
-            
           else
-              FileUtils.mv(build_target_path,File.join(destination_tmp)
+              FileUtils.mkdir_p(destination_tmp)
+              FileUtils.cp(build_target_path,File.join(destination_tmp,"/"))
+              Dir.chdir(destination_tmp)
+              system("#{decompress_package_file(build_target_path).join(" ")}")
+              FileUtils.rm(File.join(destination_tmp,File.basename(build_target_path)))
+              Dir.chdir(tmpdir)
               FileUtils.rm_rf(destination)
               FileUtils.mv(destination_tmp, destination)
           end
-
           File.open(File.join(destination, "REVISION"), "w") { |f| f.puts(revision) }
           logger.trace "compressing #{destination} to #{filename} at #{tmpdir}"
           Dir.chdir(tmpdir) { system(compress(File.basename(destination), File.basename(filename)).join(" ")) }
@@ -97,6 +97,10 @@ module Capistrano
         end
 
         private
+            
+          def java_home
+            configuration['java_home'] || ENV['JAVA_HOME']
+          end
 
           def build_command
             Dir.chdir("#{destination}")
@@ -146,6 +150,7 @@ module Capistrano
             end
           end
 
+
           # Returns the name of the file that the source code will be
           # compressed to.
           def filename
@@ -171,9 +176,12 @@ module Capistrano
 
           # The compression method to use, defaults to :gzip.
           def compression
-            configuration[:copy_compression] || :gzip
+            @compression ||= configuration[:copy_compression] || :gzip
           end
 
+          def package_file_compression
+            @package_file_compression ||= configuration[:copy_compression] || "#{File.extname(build_target_path)}" || :gzip
+          end
           # Returns the file extension used for the compression method in
           # question.
           def compression_extension
@@ -193,6 +201,8 @@ module Capistrano
             when :gzip, :gz   then ["tar", "czf", file, directory]
             when :bzip2, :bz2 then ["tar", "cjf", file, directory]
             when :zip         then ["zip", "-qr", file, directory]
+            when :war         then [File.join(java_home,"/bin/jar"), "-cf", file]
+            when :jar         then [File.join(java_home,"/bin/jar"), "-cf", file]
             else raise ArgumentError, "invalid compression type #{compression.inspect}"
             end
           end
@@ -208,6 +218,17 @@ module Capistrano
             when :bzip2, :bz2 then ["tar", "xjf", file]
             when :zip         then ["unzip", "-q", file]
             else raise ArgumentError, "invalid compression type #{compression.inspect}"
+            end
+          end
+
+          def decompress_package_file(file)
+            case package_file_compression
+            when :gzip, :gz   then ["tar", "xzf", file]
+            when :bzip2, :bz2 then ["tar", "xjf", file]
+            when :zip         then ["unzip", "-q", file]
+            when ".war"         then [File.join(java_home,"/bin/jar"), "-xf", file]
+            when ".jar"         then [File.join(java_home,"/bin/jar"), "-xf", file]
+            else raise ArgumentError, "invalid compression type #{package_file_compression.inspect}"
             end
           end
 
