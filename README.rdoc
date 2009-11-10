@@ -24,6 +24,7 @@ supports build file deploy
   # LOCAL
   set :build_target_path, "target/sports" # Directory containing generated files after execute build command
   set :build_command, "make package" #build command
+  set :java_home, "/usr/local/java" #if nil then ENV['JAVA_HOME'] directory
 
   # USER / SHELL
   #set :use_sudo, false
