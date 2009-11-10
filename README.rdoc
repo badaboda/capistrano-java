@@ -1,0 +1,35 @@
+= capistrano-java
+
+supports build file deploy
+
+= install
+  gem update --system
+  gem install gemcutter
+  gem tumble
+  gem install -r capistrano-java
+
+= deploy.rb sample
+  load 'deploy'
+  set :gateway, "gateway"
+  role :app,"app-server"
+  #role :app,*([1,2].map { |n| "app-server#{n}" })  # multi
+
+  set :application, "application"
+
+  # DEPLOYMENT SCHEME
+  set :scm, :git
+  set :deploy_via, :build_copy
+  set :repository, "."
+
+  # LOCAL
+  set :build_target_path, "target/sports" # Directory containing generated files after execute build command
+  set :build_command, "make package" #build command
+
+  # USER / SHELL
+  #set :use_sudo, false
+
+
+
+== Copyright
+
+Copyright (c) 2009 keebeom kim. See LICENSE for details.
