@@ -1,6 +1,6 @@
 = capistrano-java
 
-supports build file deploy
+  build and deploy the java file
 
 = install
   gem update --system

@@ -10,7 +10,7 @@ Gem::Specification.new do |s|
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["keebeom kim"]
   s.date = %q{2009-11-10}
-  s.description = %q{supports java build file or directory }
+  s.description = %q{build and deploy the java file }
   s.email = %q{badaboda@gmail.com}
   s.extra_rdoc_files = [
     "LICENSE",
